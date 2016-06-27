@@ -1,4 +1,5 @@
 from os import environ
+from urllib import urlencode
 from uuid import uuid4
 
 import requests
@@ -15,10 +16,10 @@ spoilers = {}
 
 @app.route('/auth')
 def auth():
-    return redirect('https://slack.com/oauth/authorize', params={
+    return redirect('https://slack.com/oauth/authorize?{}'.format(urlencode({
         'client_id': client_id,
         'scope': 'commands chat:write:user',
-    })
+    })))
 
 
 @app.route('/oauth')
