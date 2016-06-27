@@ -1,14 +1,14 @@
 {
   "name": "slash-spoilers",
-  "description": "Slack slash command for writing spoilers",
+  "description": "Slack slash command for spoilers",
   "repository": "https://github.com/marksteve/slash-spoilers",
   "keywords": [],
   "env": {
-    "SLACK_API_TOKEN": {
-      "description": "Get from https://api.slack.com/web#authentication"
+    "SLACK_CLIENT_ID": {
+      "description": "Slack app client id"
     },
-    "SLACK_SLASH_COMMAND_TOKEN": {
-      "description": "Get from https://incorgito.slack.com/services/new/slash-commands"
+    "SLACK_CLIENT_SECRET": {
+      "description": "Slack app client secret"
     }
   }
 }
