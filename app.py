@@ -50,7 +50,7 @@ def command():
     user = request.form['user_id']
 
     # :: attempt to parse topic
-    parse_match = r"(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)"
+    parse_match = re.match(r"(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)", request.form['text'])
     spoiler = parse_match.group('spoiler')
     topic = parse_match.group('topic')
 
