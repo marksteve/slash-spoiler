@@ -9,6 +9,9 @@
     },
     "SLACK_CLIENT_SECRET": {
       "description": "Slack app client secret"
+    },
+    "ORCHESTRATE_API_KEY": {
+      "description": "Orchestrate api key"
     }
   }
 }

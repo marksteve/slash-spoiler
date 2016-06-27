@@ -2,16 +2,17 @@ from os import environ
 from urllib import urlencode
 from uuid import uuid4
 
+import porc
 import requests
 from flask import Flask, json, jsonify, redirect, request
 
 application = app = Flask(__name__)
+
 client_id = environ['SLACK_CLIENT_ID']
 client_secret = environ['SLACK_CLIENT_SECRET']
 # verification_token = environ['SLACK_VERIFICATION_TOKEN']
 
-tokens = {}
-spoilers = {}
+db = porc.Client(environ['ORCHESTRATE_API_KEY'])
 
 
 @app.route('/auth')
@@ -25,7 +26,7 @@ def auth():
 @app.route('/oauth')
 def oauth():
     code = request.args['code']
-    r = requests.post('https://slack.com/api/oauth.access', json={
+    r = requests.post('https://slack.com/api/oauth.access', data={
         'client_id': client_id,
         'client_secret': client_secret,
         'code': code,
@@ -33,34 +34,34 @@ def oauth():
     data = r.json()
 
     token = data['access_token']
-    r = requests.post('https://slack.com/api/auth.test', json={
+    r = requests.post('https://slack.com/api/auth.test', data={
         'token': token,
     })
     data = r.json()
-    tokens[data['user_id']] = token
+    db.put('tokens', data['user_id'], {'value': token})
 
-    return jsonify({'ok': True})
+    return "You can now spoil with /spoil!"
 
 
 @app.route('/command', methods=['POST'])
 def command():
     channel = request.form['channel_id']
     user = request.form['user_id']
-    user_name = request.form['user_name']
     spoiler = request.form['text']
-    token = tokens[user]
+
+    token = db.get('tokens', user)['value']
 
     callback_id = uuid4()
-    spoilers[callback_id] = spoiler
+    db.put('spoilers', callback_id, {'value': spoiler})
 
-    requests.post('https://slack.com/api/chat.postMessage', json={
+    requests.post('https://slack.com/api/chat.postMessage', data={
         'token': token,
         'channel': channel,
         'as_user': True,
-        'attachments': [
+        'attachments': json.dumps([
             {
-                'text': '{} wrote a spoiler!'.format(user_name),
-                'fallback': '{} wrote a spoiler!'.format(user_name),
+                'text': 'Spoiler alert!',
+                'fallback': 'Spoiler alert!',
                 'callback_id': callback_id,
                 'actions': [
                     {
@@ -76,18 +77,22 @@ def command():
                     }
                 ],
             }
-        ],
-        'response_type': 'ephemeral',
+        ]),
     })
 
-    return jsonify({'ok': True})
+    return ""
 
 
 @app.route('/interact', methods=['POST'])
 def interact():
     data = json.loads(request.form['payload'])
-    spoiler = spoilers[data['callback_id']]
-    return jsonify({'text': spoiler})
+    spoiler = db.get('spoilers', data['callback_id'])['value']
+    return jsonify({
+        'text': spoiler,
+        'replace_original': False,
+        'response_type': 'ephemeral',
+        'icon_emoji': ':zipper_mouth_face:',
+    })
 
 
 if __name__ == '__main__':
