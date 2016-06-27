@@ -73,6 +73,7 @@ def command():
                 'text': topic,
                 'fallback': 'Spoiler alert!',
                 'callback_id': callback_id,
+                'mrkdwn_in': ['text'],
                 'actions': [
                     {
                         'name': 'show_spoiler',
