@@ -2,6 +2,7 @@ from os import environ
 from urllib import urlencode
 from uuid import uuid4
 
+import re
 import porc
 import requests
 from flask import Flask, json, jsonify, redirect, request
@@ -47,7 +48,16 @@ def oauth():
 def command():
     channel = request.form['channel_id']
     user = request.form['user_id']
-    spoiler = request.form['text']
+
+    # :: attempt to parse topic
+    parse_match = re.match(r"(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)", request.form['text'])
+    spoiler = parse_match.group('spoiler')
+    topic = parse_match.group('topic')
+
+    if topic is None:
+        topic = 'Spoiler alert!'
+    else:
+        topic = 'A spoiler about *{0}*!'.format(topic)
 
     token = db.get('tokens', user)['value']
 
@@ -60,9 +70,10 @@ def command():
         'as_user': True,
         'attachments': json.dumps([
             {
-                'text': 'Spoiler alert!',
+                'text': topic,
                 'fallback': 'Spoiler alert!',
                 'callback_id': callback_id,
+                'mrkdwn_in': ['text'],
                 'actions': [
                     {
                         'name': 'show_spoiler',
