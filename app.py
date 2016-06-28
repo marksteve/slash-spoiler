@@ -49,15 +49,13 @@ def command():
     channel = request.form['channel_id']
     user = request.form['user_id']
 
-    # :: attempt to parse topic
-    parse_match = re.match(r"(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)", request.form['text'])
-    spoiler = parse_match.group('spoiler')
-    topic = parse_match.group('topic')
+    text_match = re.match(r'(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)',
+                          request.form['text'])
+    spoiler = text_match.group('spoiler')
+    topic = text_match.group('topic')
 
     if topic is None:
         topic = 'Spoiler alert!'
-    else:
-        topic = 'A spoiler about *{0}*!'.format(topic)
 
     token = db.get('tokens', user)['value']
 
@@ -79,12 +77,6 @@ def command():
                         'name': 'show_spoiler',
                         'text': 'Show spoiler',
                         'type': 'button',
-                        'confirm': {
-                            'title': 'Are you sure?',
-                            'text': 'You will be spoiled!',
-                            'ok_text': 'Bring it on',
-                            'dismiss_text': 'Nope',
-                        },
                     }
                 ],
             }
