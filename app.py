@@ -1,11 +1,10 @@
+import re
 from os import environ
-from urllib import urlencode
 from uuid import uuid4
 
-import re
-import porc
+import redis
 import requests
-from flask import Flask, json, jsonify, redirect, request
+from flask import Flask, json, jsonify, render_template, request
 
 application = app = Flask(__name__)
 
@@ -13,42 +12,27 @@ client_id = environ['SLACK_CLIENT_ID']
 client_secret = environ['SLACK_CLIENT_SECRET']
 # verification_token = environ['SLACK_VERIFICATION_TOKEN']
 
-db = porc.Client(environ['ORCHESTRATE_API_KEY'])
+db = redis.StrictRedis(host=environ.get('REDIS_HOST', 'localhost'))
 
 
-@app.route('/auth')
-def auth():
-    return redirect('https://slack.com/oauth/authorize?{}'.format(urlencode({
-        'client_id': client_id,
-        'scope': 'commands chat:write:user',
-    })))
+@app.route('/')
+def index():
+    return render_template('index.html', client_id=client_id)
 
 
 @app.route('/oauth')
 def oauth():
     code = request.args['code']
-    r = requests.post('https://slack.com/api/oauth.access', data={
+    requests.post('https://slack.com/api/oauth.access', data={
         'client_id': client_id,
         'client_secret': client_secret,
         'code': code,
     })
-    data = r.json()
-
-    token = data['access_token']
-    r = requests.post('https://slack.com/api/auth.test', data={
-        'token': token,
-    })
-    data = r.json()
-    db.put('tokens', data['user_id'], {'value': token})
-
-    return "You can now spoil with /spoil!"
+    return render_template('index.html', auth_done=True)
 
 
 @app.route('/command', methods=['POST'])
 def command():
-    channel = request.form['channel_id']
-    user = request.form['user_id']
-
     text_match = re.match(r'(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)',
                           request.form['text'])
     spoiler = text_match.group('spoiler')
@@ -57,21 +41,17 @@ def command():
     if topic is None:
         topic = 'Spoiler alert!'
 
-    token = db.get('tokens', user)['value']
-
     callback_id = uuid4()
-    db.put('spoilers', callback_id, {'value': spoiler})
+    db.set('spoilers:{}'.format(callback_id), spoiler)
 
-    requests.post('https://slack.com/api/chat.postMessage', data={
-        'token': token,
-        'channel': channel,
-        'as_user': True,
-        'attachments': json.dumps([
+    return jsonify({
+        'response_type': 'in_channel',
+        'text': '*{}*: {}'.format(request.form['user_name'], topic),
+        'attachments': [
             {
-                'text': topic,
-                'fallback': 'Spoiler alert!',
+                'text': None,
+                'fallback': None,
                 'callback_id': callback_id,
-                'mrkdwn_in': ['text'],
                 'actions': [
                     {
                         'name': 'show_spoiler',
@@ -80,23 +60,21 @@ def command():
                     }
                 ],
             }
-        ]),
+        ],
     })
-
-    return ""
 
 
 @app.route('/interact', methods=['POST'])
 def interact():
     data = json.loads(request.form['payload'])
-    spoiler = db.get('spoilers', data['callback_id'])['value']
+    spoiler = db.get('spoilers:' + data['callback_id'])
     return jsonify({
         'text': spoiler,
-        'replace_original': False,
         'response_type': 'ephemeral',
-        'icon_emoji': ':zipper_mouth_face:',
+        'replace_original': False,
     })
 
 
 if __name__ == '__main__':
     app.run(debug=True)
+
