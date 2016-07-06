@@ -1,6 +1,3 @@
-# slash-spoilers
+# slash-spoiler
 
-Slack slash command for spoilers
-
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
-
+Slack slash command to write spoilers
