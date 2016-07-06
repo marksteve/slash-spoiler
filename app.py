@@ -44,7 +44,7 @@ def command():
     callback_id = uuid4()
     db.set('spoilers:{}'.format(callback_id), spoiler)
 
-    return jsonify({
+    requests.post(request.form['response_url'], json={
         'response_type': 'in_channel',
         'text': '*{}*: {}'.format(request.form['user_name'], topic),
         'attachments': [
@@ -62,6 +62,8 @@ def command():
             }
         ],
     })
+
+    return ""
 
 
 @app.route('/interact', methods=['POST'])
