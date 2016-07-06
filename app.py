@@ -51,7 +51,7 @@ def command():
             {
                 'text': None,
                 'fallback': None,
-                'callback_id': callback_id,
+                'callback_id': str(callback_id),
                 'actions': [
                     {
                         'name': 'show_spoiler',
