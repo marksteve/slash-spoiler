@@ -61,6 +61,7 @@ def command():
         'attachments': [
             {
                 'text': spoiler_pat.sub(hide_spoiler, text),
+                'fallback': spoiler_pat.sub(hide_spoiler, text),
                 'author_name': user_name,
                 'callback_id': callback_id,
                 'actions': [
