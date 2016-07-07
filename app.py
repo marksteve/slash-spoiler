@@ -1,3 +1,4 @@
+
 import re
 from os import environ
 from uuid import uuid4
@@ -31,37 +32,55 @@ def oauth():
     return render_template('index.html', auth_done=True)
 
 
+spoiler_pat = re.compile(r'\{(.+?)\}')
+
+
+def hide_spoiler(m):
+    if m:
+        return '\xe2\x96\x88'.decode('utf-8') * len(m.group(1))
+    else:
+        ''
+
+
+def show_spoiler(m):
+    if m:
+        return m.group(1)
+    else:
+        ''
+
+
 @app.route('/command', methods=['POST'])
 def command():
-    text_match = re.match(r'(?:\[(?P<topic>.*)\])?\s*(?P<spoiler>.*)',
-                          request.form['text'])
-    spoiler = text_match.group('spoiler')
-    topic = text_match.group('topic')
+    user_name = request.form['user_name']
+    callback_id = str(uuid4())
+    text = request.form['text']
 
-    if topic is None:
-        topic = 'Spoiler alert!'
-
-    callback_id = uuid4()
-    db.set('spoilers:{}'.format(callback_id), spoiler)
-
-    requests.post(request.form['response_url'], json={
-        'response_type': 'in_channel',
-        'text': '*{}*: {}'.format(request.form['user_name'], topic),
+    message = {
+        'text': None,
+        'color': '#000000',
         'attachments': [
             {
-                'text': None,
-                'fallback': None,
-                'callback_id': str(callback_id),
+                'text': spoiler_pat.sub(hide_spoiler, text),
+                'author_name': user_name,
+                'callback_id': callback_id,
                 'actions': [
                     {
                         'name': 'show_spoiler',
                         'text': 'Show spoiler',
                         'type': 'button',
+                        'confirm': {
+                            'title': user_name,
+                            'text': spoiler_pat.sub(show_spoiler, text),
+                        },
                     }
                 ],
-            }
+            },
         ],
-    })
+    }
+    db.set('spoilers:{}'.format(callback_id), json.dumps(message))
+
+    message.update(response_type='in_channel')
+    requests.post(request.form['response_url'], json=message)
 
     return ""
 
@@ -69,12 +88,12 @@ def command():
 @app.route('/interact', methods=['POST'])
 def interact():
     data = json.loads(request.form['payload'])
-    spoiler = db.get('spoilers:' + data['callback_id'])
-    return jsonify({
-        'text': spoiler,
-        'response_type': 'ephemeral',
-        'replace_original': False,
-    })
+    callback_id = data['callback_id']
+    message = json.loads(db.get('spoilers:' + callback_id))
+    views = db.incr('spoiler_views:' + callback_id)
+    message['attachments'][0]['footer'] = '{} viewed this spoiler'.format(views)
+    message.update(replace_original=True)
+    return jsonify(message)
 
 
 if __name__ == '__main__':
