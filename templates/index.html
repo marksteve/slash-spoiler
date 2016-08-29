@@ -3,19 +3,32 @@
 <head>
   <title>/spoiler</title>
   <style>
-    body { font: 20px/1.5 sans-serif; text-align: center; }
+    body { font: 16px/1.5 sans-serif; margin: 0; padding: 0; }
+    main {
+      box-sizing: border-box;
+      padding: 1.5rem 3rem;
+      min-width: 100vw;
+      min-height: 100vh;
+      background: url({{ url_for('static', filename='demo.gif') }}) no-repeat right top;
+      background-size: contain;
+    }
+    a { color: inherit; }
     .spoiler { background: black; color: black; display: inline-block; padding: 0 0.25em; }
     .spoiler:hover { background: black; color: white; }
   </style>
 <body>
-  <h1><span class="spoiler">/spoiler</span></h1>
-  <p>
-  {% if auth_done %}
-    <strong>/spoiler</strong> has been added to your team.
-  {% else %}
-    <a href="https://slack.com/oauth/authorize?scope=commands&client_id={{ client_id }}">
+  <main>
+    <h1><span class="spoiler">/spoiler</span></h1>
+    <p class="spoiler">Protect your channels from spoilers!</p>
+    {% if auth_done %}
+    <p><strong>/spoiler</strong> has been added to your team.</p>
+    {% else %}
+    <p><a href="https://slack.com/oauth/authorize?scope=commands&client_id={{ client_id }}">
       <img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" />
-    </a>
-  {% endif %}
-  </p>
-  <p><a class="spoiler" href="https://github.com/marksteve/slash-spoiler">GitHub</a></p>
+    </a></p>
+    {% endif %}
+    <p class="spoiler">
+      By <a href="https://marksteve.com">Mark Steve Samson</a> &mdash;
+      <a href="https://github.com/marksteve/slash-spoiler">GitHub</a>
+    </p>
+  </main>
